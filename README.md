@@ -10,7 +10,7 @@ artist is
 highlighted by high quality artist imagery. Press the 'listen' button to hear a
 playlist of the path.
 
-The Elvis Influence is online at TBD
+The app is online at TBD
 
 It makes use of the Spotify Web API.
 
