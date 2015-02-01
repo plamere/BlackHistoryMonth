@@ -1,0 +1,55 @@
+.tadiv {    
+    width:95%;
+    text-align:center;
+}
+
+.tadiv h1 {
+    font-size:96px;
+}
+
+#main {
+    /*
+    background-image: url(images/elvis.jpg);
+    background-repeat:no-repeat;
+    */
+}
+
+.headline {
+    font-size:76px;
+}
+
+.img-center { 
+    margin: 0 auto;
+}
+
+body .modal-dialog {
+    width:450px;
+    margin-left:0px;
+}
+
+.clear {clear: both;}
+
+
+IMG.displayed {
+    display: block;
+    margin-left: auto;
+    margin-right: auto }
+
+h2.list-group-item-heading {
+    font-size:44px !important;
+}
+
+.artist-block {
+    margin-top:20px;
+    margin-bottom:20px;
+    text-align:center;
+}
+
+.artist-block h2 {
+    text-align:center;
+}
+
+.left-align {
+    text-align:left !important;
+}
+

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link type="text/css" href="styles.css" rel="stylesheet" />
+    <link href="https://d3nkxvtkt5c8vi.cloudfront.net/4.0.0/sp-bootstrap.min.css" rel="stylesheet">
+    <link rel="shortcut icon" href="images/favicon.png">
+    <title>The Artist Influence</title>
+    <!-- Custom styles for this template -->
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+  <body >
+    <div class="navbar navbar-default" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href=".">
+            <span class="navbar-logo">Spotify</span>
+            <span class="navbar-title">The <span class='seed-first-name'> Artist </span> Influence</span>
+          </a>
+        </div>
+        <div id="navbar" class="">
+          <div class="navbar-form navbar-right" role="form">
+            <div class="form-group">
+              <input id='artist' type="text" 
+              data-provide="typeahead" autocomplete="off" placeholder="Artist Name"
+              class="form-control typeahead">
+            </div>
+            <button id='go' type="button" class="btn btn-success">Go</button>
+          </div>
+        </div><!--/.navbar-collapse -->
+      </div>
+    </div>
+
+    <div id="playerModal" class="modal fade">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal"><span
+    aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 class="modal-title">From <span class="aname"></span> to 
+            <span class='seed-name'> the seed artist</span></h4>
+          </div>
+          <div class="modal-body">
+        <iframe id="play-button"
+        src="https://embed.spotify.com/?uri=spotify:trackset:PREFEREDTITLE:5Z7ygHQo02SUrFmcgpwsKW,1x6ACsKV4UdWS2FMuPFUiT,4bi73jCM02fMpkI11Lqmfe" frameborder="0" allowtransparency="true" width="400" height="500"></iframe>
+              </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div id='main' class="">
+      <h1 class='headline text-center'> The <span class="seed-first-name">Artist </span> Influence </h1>
+      <div class="container-fluid col-xs-offset-1 col-xs-10" id="intro">
+            <p class="lead">
+            See how your favorite band was influenced by 
+            <span class='seed-name'>the seed</span>. 
+            Type the name of your favorite artist from
+            <a href="?q=One+Direction"> One Direction </a> to
+            <a href="?q=Lana+Del+Rey">Lana Del Rey</a> 
+            to see how they are connected to 
+            <span class='seed-nick'>this influential artist</span>.
+            <div class="clear"></div>
+            <img class='img-center' id='seed-artist-image' alt='from wikipedia' src="">
+      </div>
+      <div class="clear"></div>
+      <div id='info' class="h2 text-center"> </div>
+      <div class="container-fluid col-xs-offset-1 col-xs-10 text-center" id="top">
+        <div class="row">
+            <button class='btn btn-primary' id='listen'> Listen </button>
+        </div>
+        <div class="row">
+            <div id="results" class="col-centered"> </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="clear"></div>
+
+    <div id="footer">
+      <div class="container text-center">
+            <p class="text-muted">
+                See the <a
+                href="http://insights.spotify.com/"> Spotify Insights Blog</a> for more info.
+                <br>
+                Powered by <a href="http://spotify.com">Spotify</a>.
+                Created by <a href="http://twitter.com/plamere">@plamere</a>.
+            </p>
+      </div>
+    </div>
+    <script src="lib/jquery-1.11.1.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="lib/underscore-min.js"></script>
+    <script src="lib/bootstrap3-typeahead.min.js"></script>
+<script>
+"use strict";
+
+var graph = { }
+var nameToIDs = {};
+var fullArtistInfo = {};
+var curID = null;
+
+var artistInfo = {
+    name:'Etta James',
+    first:'Etta',
+    nick:'The Matriarch of R&amp;B',
+    json:'ejames.json',
+    artistImage: 'images/ejames.jpg',
+    artistImageLicense: 'Etta James" by John K. Addis - Own work. ' +
+        'Licensed under CC BY-SA 3.0 via Wikimedia Commons '
+};
+
+function info(msg) {
+    $("#info").text(msg);
+}
+
+function error(msg) {
+    $("#info").text(msg);
+}
+
+function loadGraph(callback) {
+    $.getJSON(artistInfo.json).then(
+        function(paths) {
+            var names = [];
+            _.each(paths, function(info, key) {
+                var name = info[0];
+                var next_key = info[1];
+                var dir = info[2];
+                if (next_key == null) {
+                }
+                names.push(name);
+                nameToIDs[name] = key;
+                var node = {
+                    key:key,
+                    name:name,
+                    next:next_key,
+                    dir:dir
+                }
+                graph[key] = node;
+            });
+            names.sort();
+            $("#artist").typeahead({source:names, autoSelect:false});
+            callback();
+        },
+        function() {
+            info("Trouble loading the graph");
+        }
+    );
+}
+
+
+var dir_name = {
+    '0': '',
+    '1': 'was a member of',
+    '2': 'was influenced by',
+    '3': 'is similar to',
+    '-1': 'had member',
+    '-2': 'influenced',
+}
+
+function fetchImage(imgDiv, node) {
+    var url = "https://api.spotify.com/v1/artists/" + node.key;
+    $.getJSON(url).then(
+        function(results) {
+            var img = results.images[0].url;
+            node.img = img;
+            imgDiv.attr('src', node.img);
+            imgDiv.attr('width', '1000px');
+        },
+        function() {
+        }
+    )
+}
+
+function addArtist(div, id, which) {
+    var node = graph[id];
+    var link_type = dir_name[node.dir];
+    var prefix = which === 0 ? '' : link_type.length > 0 ? 'who ' : '';
+    var type = prefix + link_type;
+    div.addClass("tadiv");
+    var sdiv = $("<div>");
+    var img = $("<img>");
+    img.addClass("img-responsive");
+    img.addClass("img-center");
+    if (node.img) {
+        img.attr('src', node.img);
+    } else {
+        fetchImage(img, node);
+    }
+    div.append(sdiv);
+    var h1 = $("<h1>");
+    var h3 = $("<h3>");
+
+    var a = $("<a>").text(node.name);
+    h1.append(a);
+    a.attr('href', 'https://open.spotify.com/artist/' + node.key);
+    a.attr('target', 'spotify');
+    sdiv.append(h1)
+    sdiv.append(img);
+    h3.text(type);
+    sdiv.append(h3)
+}
+
+
+function showPathToArtist(id) {
+    var results = $("#results");
+    results.empty();
+    $("#top").show();
+    info("");
+    curID = id;
+    $(".aname").text(graph[id].name);
+    var which = 0;
+    while (id) {
+        var div = $("<span>");
+        results.append(div);
+        addArtist(div, id, which);
+        id = graph[id].next;
+        which ++;
+    }
+}
+
+function searchArtist(artistName) {
+    $("#artist").val(artistName);
+    var p = '?q=' + encodeURI(artistName);
+    history.replaceState({}, document.title, p);
+
+    $("#intro").hide();
+    if (artistName in nameToIDs) {
+        var id = nameToIDs[artistName];
+        showPathToArtist(id);
+    }  else { // poor man's slow search
+        var found = false;
+        var artistName = artistName.toLowerCase();
+        _.each(graph, function(artist, id) {
+            if (artistName === artist.name.toLowerCase()) {
+                found = true;
+                showPathToArtist(id);
+            }
+        });
+        if (!found) {
+            findSimilar(artistName);
+        }
+    }
+}
+
+function getSims(artist) {
+    var url = "https://api.spotify.com/v1/artists/" + artist.id + "/related-artists";
+    $.getJSON(url).then(
+        function(results) {
+            var found = false;
+            for (var i = 0; i < results.artists.length; i++) {
+                var sartist = results.artists[i];
+                if (sartist.id in graph) {
+                    var node = {
+                        key:artist.id,
+                        name:artist.name,
+                        next:sartist.id,
+                        dir: 3
+                    }
+                    graph[artist.id] = node;
+                    showPathToArtist(artist.id);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                info("Woah. Can't find a connection between " 
+                    + artistInfo.name + " and " + artist.name);
+            }
+        },
+        function()  {
+            info("bad sims");
+        }
+    );
+}
+
+function findSimilar(name) {
+    var url = "https://api.spotify.com/v1/search";
+    var params = {
+        q:name, 
+        limit:1,
+        type:"artist"
+    }
+    $.getJSON(url,params).then(
+        function(results) {
+            console.log('results', results);
+            if (results.artists.items.length > 0) {
+                for (var i =0; i < results.artists.items.length; i++) {
+                    var artist = results.artists.items[i];
+                    fullArtistInfo[artist.id] = artist;
+                    if (artist.id in graph) {
+                        showPathToArtist(artist.id);
+                    } else {
+                        getSims(artist);
+                    }
+                }
+            } else {
+                error("Can't find  artist by the name " + name);
+            }
+        },
+        function()  {
+            info("bad sims");
+        }
+    );
+}
+
+function fetchTracks(node, callback) {
+    var url = "https://api.spotify.com/v1/artists/" + node.key + "/top-tracks";
+    $.getJSON(url, {country:'US'}).then(
+        function(results) {
+            console.log('fetchtracks', node, results);
+            node.tracks = [];
+            _.each(results.tracks, function(track) {
+                node.tracks.push(track.id);
+            });
+            callback();
+        },
+        function() {
+        }
+    );
+}
+
+
+function populateTracks(id, callback) {
+    if (id) {
+        var node = graph[id];
+        if (node.tracks == undefined) {
+            fetchTracks(node, function() {
+                var next = graph[id].next;
+                if (next) {
+                    populateTracks(next, callback);
+                } else {
+                    callback();
+                }
+            });
+        } else {
+            var next = graph[id].next;
+            if (next) {
+                populateTracks(next, callback);
+            } else {
+                callback();
+            }
+        }
+    }
+}
+
+function path_length(id) {
+    var count = 0;
+    while (id) {
+        count++;
+        id = graph[id].next;
+    }
+    return count;
+}
+
+function make_playlist(id) {
+    var min_size = 8;
+    var nartists = path_length(id);
+    var tracks_per_artist = Math.ceil(min_size / nartists);
+    var tracks = [];
+
+    while (id) {
+        var node = graph[id];
+        var atracks = _.sample(node.tracks, tracks_per_artist);
+        _.each(atracks, function(track) {
+            tracks.push(track);
+        });
+        id = node.next;
+    }
+    return tracks;
+}
+
+function urldecode(str) {
+   return decodeURIComponent((str+'').replace(/\+/g, '%20'));
+}
+
+function processParams() {
+    var params = {};
+    var q = document.URL.split('?')[1];
+    if(q != undefined){
+        q = q.split('&');
+        for(var i = 0; i < q.length; i++){
+            var pv = q[i].split('=');
+            var p = pv[0];
+            var v = pv[1];
+            params[p] = urldecode(v);
+        }
+    }
+    if ('q' in params) {
+        var name = params['q'];
+        $("#artist").val(name);
+        searchArtist(name);
+    }
+}
+
+function initUI() {
+    $("#top").hide();
+    $("#artist").on('change', function() {
+        var artist = $("#artist").val();
+        searchArtist(artist);
+    });
+
+    $("#go").on('click', function() {
+        var artist = $("#artist").val();
+        searchArtist(artist);
+    });
+
+    $("#listen").on('click', function() {
+        var options = { keyboard:true };
+        populateTracks(curID, function() {
+            var tracks = make_playlist(curID);
+            var title = encodeURIComponent('From ' 
+                + graph[curID].name  + "  " + artistInfo.name);
+            var uri = 'https://embed.spotify.com/?uri=spotify:trackset:' + title + ':'
+                       + tracks.join(',');
+            $("#play-button").attr('src', uri);
+            $('#playerModal').modal(options)
+        })
+    });
+
+    $(".seed-first-name").html(artistInfo.first);
+    $(".seed-name").html(artistInfo.name);
+    $(".seed-nick").html(artistInfo.nick);
+    $("#seed-artist-image").attr('src', artistInfo.artistImage);
+    $("#seed-artist-image").attr('alt', artistInfo.artistImageLicense);
+    $("#seed-artist-image").attr('title', artistInfo.artistImageLicense);
+}
+
+$(document).ready(
+    function() {
+        initUI();
+        loadGraph(function() {
+            processParams();
+        });
+    }
+);
+
+</script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-3675615-45', 'auto');
+  ga('send', 'pageview');
+</script>
+</body>
+</html>
